@@ -8,6 +8,11 @@ spec:
   envFrom:
   - secretRef:
       name: dynatrace-otelcol-dt-api-credentials
+  env:
+    - name: K8S_NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
   mode: "daemonset"
   image: "otel/opentelemetry-collector-contrib:latest"
   # podAnnotations:
