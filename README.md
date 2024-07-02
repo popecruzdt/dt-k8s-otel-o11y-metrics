@@ -19,7 +19,7 @@ Lab tasks:
 6. Configure OpenTelemetry Collector service pipeline for metric enrichment
 5. Query and visualize metrics in Dynatrace using DQL
 
-![astronomy-shop logs](img/astronomy-shop_logs.png)
+TODO Dashboard Image
 
 <!-- -------------------------->
 ## Technical Specification 
@@ -31,10 +31,10 @@ Duration: 2
   - tested on GKE v1.29.4-gke.1043002
 - [OpenTelemetry Demo astronomy-shop](https://opentelemetry.io/docs/demo/)
   - tested on release 1.10.0
-- [Istio](https://istio.io/latest/docs/)
-  - tested on v1.22.1
 - [OpenTelemetry Collector - Contrib Distro](https://github.com/open-telemetry/opentelemetry-collector-contrib/releases)
   - tested on v0.103.0
+- [Istio](https://istio.io/latest/docs/)
+  - tested on v1.22.1
 
 #### Reference Architecture
 TODO
@@ -172,7 +172,7 @@ kubectl get pods -n dynatrace
 Sample output:
 | NAME                             | READY | STATUS  | RESTARTS | AGE |
 |----------------------------------|-------|---------|----------|-----|
-| dynatrace-logs-collector-8q8tz   | 1/1   | Running | 0        | 1m  |
+| dynatrace-metrics-node-collector-2kzlp   | 1/1   | Running | 0        | 1m  |
 
 ##### Create `clusterrole` with read access to Kubernetes objects
 ```yaml
@@ -254,48 +254,46 @@ timeseries node_cpu = avg(k8s.node.cpu.utilization), by: {k8s.cluster.name, k8s.
 Result:\
 ![dql_kubeletstats_node_cpu](img/dql_kubeletstats_node_cpu.png)
 
-
-
 ##### Add `k8sattributes` processor
 https://opentelemetry.io/docs/kubernetes/collector/components/#kubernetes-attributes-processor
 ```yaml
 k8sattributes:
-    auth_type: "serviceAccount"
-    passthrough: false
-        filter:
-        node_from_env_var: KUBE_NODE_NAME
-    extract:
-        metadata:
-            - k8s.namespace.name
-            - k8s.deployment.name
-            - k8s.daemonset.name
-            - k8s.job.name
-            - k8s.cronjob.name
-            - k8s.replicaset.name
-            - k8s.statefulset.name
-            - k8s.pod.name
-            - k8s.pod.uid
-            - k8s.node.name
-            - k8s.container.name
-            - container.id
-            - container.image.name
-            - container.image.tag
-        labels:
-        - tag_name: app.label.component
-            key: app.kubernetes.io/component
-            from: pod
+  auth_type: "serviceAccount"
+  passthrough: false
+  filter:
+    node_from_env_var: KUBE_NODE_NAME
+  extract:
+    metadata:
+      - k8s.namespace.name
+      - k8s.deployment.name
+      - k8s.daemonset.name
+      - k8s.job.name
+      - k8s.cronjob.name
+      - k8s.replicaset.name
+      - k8s.statefulset.name
+      - k8s.pod.name
+      - k8s.pod.uid
+      - k8s.node.name
+      - k8s.container.name
+      - container.id
+      - container.image.name
+      - container.image.tag
+    labels:
+      - tag_name: app.label.component
+        key: app.kubernetes.io/component
+        from: pod
     pod_association:
-        - sources:
-            - from: resource_attribute
-              name: k8s.pod.uid
-        - sources:
-            - from: resource_attribute
-              name: k8s.pod.name
-        - sources:
-            - from: resource_attribute
-              name: k8s.pod.ip
-        - sources:
-            - from: connection
+      - sources:
+          - from: resource_attribute
+            name: k8s.pod.uid
+      - sources:
+          - from: resource_attribute
+            name: k8s.pod.name
+      - sources:
+          - from: resource_attribute
+            name: k8s.pod.ip
+      - sources:
+          - from: connection
 ```
 Command:
 ```sh
@@ -312,19 +310,7 @@ kubectl get pods -n dynatrace
 Sample output:
 | NAME                             | READY | STATUS  | RESTARTS | AGE |
 |----------------------------------|-------|---------|----------|-----|
-| dynatrace-logs-collector-dns4x   | 1/1   | Running | 0        | 1m  |
-
-##### Query logs in Dynatrace
-DQL:
-```sql
-fetch logs
-| filter k8s.namespace.name == "astronomy-shop" and isNotNull(k8s.deployment.name)
-| sort timestamp desc
-| limit 100
-| fields timestamp, loglevel, status, k8s.namespace.name, k8s.deployment.name, k8s.pod.name, k8s.container.name, app.label.component, content
-```
-Result:\
-![dql_k8sattributes_processor](img/dql_k8sattributes_processor.png)
+| dynatrace-metrics-node-collector-drk1p   | 1/1   | Running | 0        | 1m  |
 
 #### Deploy OpenTelemetry Collector - Contrib Distro - Deployment (Gateway)
 https://github.com/open-telemetry/opentelemetry-operator
@@ -357,7 +343,7 @@ kubectl get pods -n dynatrace
 Sample output:
 | NAME                             | READY | STATUS  | RESTARTS | AGE |
 |----------------------------------|-------|---------|----------|-----|
-| dynatrace-logs-collector-8q8tz   | 1/1   | Running | 0        | 1m  |
+| dynatrace-metrics-cluster-collector-7bd8dc4995-6sgs2   | 1/1   | Running | 0        | 1m  |
 
 ##### `k8s_cluster` receiver
 https://opentelemetry.io/docs/kubernetes/collector/components/#kubernetes-cluster-receiver
@@ -376,7 +362,7 @@ https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/rece
 ##### Query Deployment metrics in Dynatrace
 DQL:
 ```sql
-timeseries node_cpu = min(k8s.deployment.available), by: {k8s.cluster.name, k8s.deployment.name}, filter: {k8s.namespace.name == "astronomy-shop"}
+timeseries pods_avail = min(k8s.deployment.available), by: {k8s.cluster.name, k8s.deployment.name}, filter: {k8s.namespace.name == "astronomy-shop"}
 ```
 Result:\
 ![dql_k8scluster_pod_avail](img/dql_k8scluster_pod_avail.png)
@@ -426,14 +412,19 @@ DQL:
 timeseries jvm_mem_used = avg(jvm.memory.used), by: {service.name, k8s.cluster.name}, filter: {k8s.namespace.name == "astronomy-shop"}
 ```
 Result:\
-![dql_kubeletstats_node_cpu](img/dql_kubeletstats_node_cpu.png)
+![dql_sdk_jvm_mem](img/dql_sdk_jvm_mem.png)
 
 DQL:
 ```sql
 timeseries avg(kafka.consumer.request_rate), by: {service.name, k8s.cluster.name}, filter: {k8s.namespace.name == "astronomy-shop"}
 ```
 Result:\
-![dql_kubeletstats_node_cpu](img/dql_kubeletstats_node_cpu.png)
+![dql_sdk_kafka_request_rate](img/dql_sdk_kafka_request_rate.png)
+
+#### Browse available metrics in Dynatrace
+You can browse all available metrics from OpenTelemetry sources in the Metrics Browser.  Filter on `Dimension:otel.scope.name` to find relevant metrics.\
+https://docs.dynatrace.com/docs/observe-and-explore/dashboards-classic/metrics-browser
+![dt_otel_scope_metrics](img/dt_otel_scope_metrics.png)
 
 <!-- ------------------------ -->
 ## Demo The New Functionality
