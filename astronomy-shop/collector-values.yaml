@@ -671,7 +671,7 @@ opentelemetry-collector:
     exporters:
       # Dynatrace OTel Collector
       otlphttp/dtcollector:
-        endpoint: http://dynatrace-traces-collector.dynatrace.svc.cluster.local:4318
+        endpoint: http://dynatrace-metrics-cluster-collector.dynatrace.svc.cluster.local:4318
 
     processors:
       resource:
@@ -688,12 +688,9 @@ opentelemetry-collector:
         traces:
           receivers: [otlp]
           processors: [memory_limiter, resource, batch]
-          exporters: [spanmetrics, otlphttp/dtcollector]
+          exporters: [spanmetrics]
         metrics:
           receivers: [httpcheck/frontendproxy, otlp, spanmetrics]
-          processors: [memory_limiter, resource, batch]
-          exporters: [otlphttp/dtcollector]
-        logs:
           processors: [memory_limiter, resource, batch]
           exporters: [otlphttp/dtcollector]
 

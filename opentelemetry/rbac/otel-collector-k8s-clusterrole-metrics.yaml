@@ -2,10 +2,10 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: otel-collector-k8s-clusterrole
+  name: otel-collector-k8s-clusterrole-metrics
 rules:
   - apiGroups: ['']
-    resources: ['events', 'namespaces', 'namespaces/status', 'nodes', 'nodes/spec', 'nodes/stats', 'pods', 'pods/status', 'replicationcontrollers', 'replicationcontrollers/status', 'resourcequotas', 'services']
+    resources: ['events', 'namespaces', 'namespaces/status', 'nodes', 'nodes/spec', 'nodes/stats', 'nodes/proxy', 'pods', 'pods/status', 'replicationcontrollers', 'replicationcontrollers/status', 'resourcequotas', 'services']
     verbs: ['get', 'list', 'watch']
   - apiGroups: ['apps']
     resources: ['daemonsets', 'deployments', 'replicasets', 'statefulsets']
