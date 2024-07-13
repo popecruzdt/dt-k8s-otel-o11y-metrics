@@ -2,7 +2,7 @@ id: dt-k8s-otel-o11y-metrics
 summary: dynatrace metric ingest for kubernetes using opentelemetry collector
 author: Tony Pope-Cruz
 
-# Kubernetes Log Ingest with OpenTelemetry & Dynatrace
+# Kubernetes Metric Ingest with OpenTelemetry & Dynatrace
 <!-- ------------------------ -->
 ## Overview 
 Total Duration: 20
