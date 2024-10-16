@@ -11,12 +11,10 @@ Total Duration: 20
 In this lab we'll utilize the OpenTelemetry Collector deployed as a DaemonSet (Node Agent) to collect Node (kubelet) metrics from a Kubernetes cluster and ship them to Dynatrace.  Additionally, we'll utilize a second OpenTelemetry Collector deployed as a Deployment (Gateway) to collect Cluster (Kubernetes API) metrics from the Kubernetes cluster and ship them to Dynatrace.
 
 Lab tasks:
-1. Create a Kubernetes cluster on Google GKE
-2. Deploy OpenTelemetry's demo application, astronomy-shop
-3. Deploy OpenTelemetry Collector as a DaemonSet
+1. Deploy OpenTelemetry Collector as a DaemonSet
+2. Configure OpenTelemetry Collector service pipeline for metric enrichment
+3. Deploy OpenTelemetry Collector as a Deployment
 4. Configure OpenTelemetry Collector service pipeline for metric enrichment
-5. Deploy OpenTelemetry Collector as a Deployment
-6. Configure OpenTelemetry Collector service pipeline for metric enrichment
 5. Query and visualize metrics in Dynatrace using DQL
 
 TODO Dashboard Image
@@ -27,8 +25,8 @@ Duration: 2
 
 #### Technologies Used
 - [Dynatrace](https://www.dynatrace.com/trial)
-- [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine)
-  - tested on GKE v1.29.4-gke.1043002
+- [Kind Kubernetes](https://kind.sigs.k8s.io/)
+  - tested on Kind v0.24.0
 - [OpenTelemetry Demo astronomy-shop](https://opentelemetry.io/docs/demo/)
   - tested on release 1.10.0, helm release 0.31.0
 - [OpenTelemetry Collector - Contrib Distro](https://github.com/open-telemetry/opentelemetry-collector-contrib/releases)
@@ -40,35 +38,73 @@ Duration: 2
 TODO
 
 #### Prerequisites
-- Google Cloud Account
-- Google Cloud Project
-- Google Cloud Access to Create and Manage GKE Clusters
-- Google CloudShell Access
 
 <!-- -------------------------->
 ## Setup
 Duration: 18
 
+### Launching Lab Guide Locally
+
+Clone the repo:
+```sh
+git clone --single-branch --branch code-spaces https://github.com/popecruzdt/dt-k8s-otel-o11y-metrics.git
+```
+
+Move into the lab guide directory:
+```sh
+cd dt-k8s-otel-o11y-metrics/lab-guide
+```
+
+Run the generator command:
+```sh
+node bin/generator.js
+```
+
+Run the server command:
+```sh
+node bin/server.js
+```
+
+Open the URL in your browser:
+```text
+http://localhost:3000
+```
+
 ### Prerequisites
 
-#### Deploy GKE cluster & demo assets
-https://github.com/popecruzdt/dt-k8s-otel-o11y-cluster
+#### Codespaces Cluster Set Up
+Create a new instance or use an existing instance of the `dt-k8s-otel-o11y-cluster` Codespaces.
 
-#### Clone the repo to your home directory
+[dt-k8s-otel-o11y-cluster](https://github.com/popecruzdt/dt-k8s-otel-o11y-cluster/tree/code-spaces)
+
+Navigate to the Github repository.  Click on `Code`.  Click on `Codespaces`.  Click on `New with options`.
+
+![github cluster repo](img/github_cluster_repo.png)
+
+Choose the Branch `code-spaces`.  Choose the Dev Container Configuration `Kubernetes in Codespaces`.
+
+Choose a Region near your Dynatrace tenant.
+
+Choose Machine Type `2-core`.
+
+![github new codespaces](img/github_cluster_new_codespaces.png)
+
+Allow the Codespace instance to fully initialize.  It is not ready yet.
+
+![github codespace launch](img/github_codespace_launch.png)
+
+The Codespace instance will run the post initialization scripts.
+
+![github codespace ](img/github_codespace_create.png)
+
+When the Codespace instance is idle, validate the `astronomy-shop` pods are running.
+
 Command:
 ```sh
-git clone https://github.com/popecruzdt/dt-k8s-otel-o11y-metrics.git
+kubectl get pods -n astronomy-shop
 ```
-Sample output:
-> Cloning into 'dt-k8s-otel-o11y-metrics'...\
-> ...\
-> Receiving objects: 100% (12/12), 10.61 KiB | 1.77 MiB/s, done.
 
-#### Move into repo base directory
-Command:
-```sh
-cd dt-k8s-otel-o11y-metrics
-```
+![github codespace ready](img/github_codespace_ready.png)
 
 #### Generate Dynatrace Access Token
 Generate a new API access token with the following scopes:
@@ -81,16 +117,29 @@ Ingest OpenTelemetry traces
 [See Related Dynatrace API Token Creation Documentation](https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication#create-token)
 ![dt access token](img/dt_access_token.png)
 
-#### (optional) Import Notebook into Dynatrace
-[notebook](/dt-k8s-otel-o11y-metrics_dt_notebook.json)
+#### Import Notebook into Dynatrace
+[Notebook](/dt-k8s-otel-o11y-metrics_dt_notebook.json)
 
 #### Define workshop user variables
-In your GCP CloudShell Terminal:
+In your Github Codespaces Terminal:
 ```
 DT_ENDPOINT=https://{your-environment-id}.live.dynatrace.com/api/v2/otlp
 DT_API_TOKEN={your-api-token}
-NAME={initials}-k8s-otel-o11y
+NAME=<INITIALS>-k8s-otel-o11y
 ```
+
+#### Clone the `code-spaces` branch to your Codespaces instance
+Command:
+```sh
+git clone --single-branch --branch code-spaces https://github.com/popecruzdt/dt-k8s-otel-o11y-metrics.git
+```
+
+#### Move into the base directory
+Command:
+```sh
+cd dt-k8s-otel-o11y-metrics
+```
+
 ### OpenTelemetry Collector - Contrib Distro
 https://github.com/open-telemetry/opentelemetry-collector-contrib
 
@@ -103,6 +152,9 @@ Sample output:
 > namespace/dynatrace created
 
 #### Create `dynatrace-otelcol-dt-api-credentials` secret
+
+The secret holds the API endpoint and API token that OpenTelemetry data will be sent to.
+
 Command:
 ```sh
 kubectl create secret generic dynatrace-otelcol-dt-api-credentials --from-literal=DT_ENDPOINT=$DT_ENDPOINT --from-literal=DT_API_TOKEN=$DT_API_TOKEN -n dynatrace
@@ -115,7 +167,7 @@ https://cert-manager.io/docs/installation/
 
 Command:
 ```sh
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.yaml
+kubectl apply -f opentelemetry/cert-manager.yaml
 ```
 Sample output:
 > namespace/cert-manager created\
@@ -125,9 +177,12 @@ Sample output:
 > validatingwebhookconfiguration.admissionregistration.k8s.io/cert-manager-webhook created
 
 #### Deploy `opentelemetry-operator`
+
+The OpenTelemetry Operator will deploy and manage the custom resource `OpenTelemetryCollector` deployed on the cluster.
+
 Command:
 ```sh
-kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releases/download/v0.103.0/opentelemetry-operator.yaml
+kubectl apply -f opentelemetry/opentelemetry-operator.yaml
 ```
 Sample output:
 > namespace/opentelemetry-operator-system created\
@@ -436,11 +491,11 @@ TODO
 ### What You Learned Today 
 By completing this lab, you've successfully deployed the OpenTelemetry Collector to collect metrics, enrich metric attributes for better context, and ship those metrics to Dynatrace for analysis.
 - One Community Contrib Distro OpenTelemetry Collector was deployed as a DaemonSet, behaving as an Agent running on each Node
-  - The `kubeletstats` receiver scrapes metrics from the local kubelet on the Node
-  - The `k8sattributes` processor enriches the metrics with Kubernetes attributes that may be missing without it
+    * The `kubeletstats` receiver scrapes metrics from the local kubelet on the Node
+    * The `k8sattributes` processor enriches the metrics with Kubernetes attributes that may be missing without it
 - A second Community Contrib Distro OpenTelemetry Collector was deployed as a Deployment, behaving as a Gateway
-  - The `k8s_cluster` receiver queries the Kubernetes cluster API to retrieve metrics
-  - The `k8sattributes` processor enriches the metrics with Kubernetes attributes that may be missing without it
+    * The `k8s_cluster` receiver queries the Kubernetes cluster API to retrieve metrics
+    * The `k8sattributes` processor enriches the metrics with Kubernetes attributes that may be missing without it
 - Metrics produced by the OpenTelemetry SDKs and Agents are exported to the `otlp` receiver
 - Dynatrace DQL (via Notebooks) allows you to perform powerful queries and analysis of the metric data
 
