@@ -75,10 +75,11 @@ spec:
           #      name: k8s.pod.ip
           - sources:
               - from: connection
-      resourcedetection/gcp:
-        detectors: [env, gcp]
-        timeout: 2s
-        override: false
+      resource/kind:
+        attributes:
+        - key: k8s.cluster.name
+          value: dt-k8s-o11y-kind
+          action: insert
       resource:
         attributes:
         - key: k8s.pod.ip
@@ -112,5 +113,5 @@ spec:
       pipelines:
         metrics:
           receivers: [otlp,k8s_cluster]
-          processors: [k8sattributes,resourcedetection/gcp,resource,batch]
+          processors: [k8sattributes,resource/kind,resource,batch]
           exporters: [otlphttp/dynatrace,debug]

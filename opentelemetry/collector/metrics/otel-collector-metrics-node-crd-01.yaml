@@ -47,6 +47,11 @@ spec:
         send_batch_max_size: 1000
         timeout: 30s
         send_batch_size: 800
+      resource/kind:
+        attributes:
+        - key: k8s.cluster.name
+          value: dt-k8s-o11y-kind
+          action: insert
 
     exporters:
       otlphttp/dynatrace:
@@ -67,5 +72,5 @@ spec:
       pipelines:
         metrics:
           receivers: [otlp,kubeletstats]
-          processors: [batch]
+          processors: [resource/kind,batch]
           exporters: [otlphttp/dynatrace,debug]

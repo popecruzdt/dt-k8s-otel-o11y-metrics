@@ -176,6 +176,8 @@ Sample output:
 > ...\
 > validatingwebhookconfiguration.admissionregistration.k8s.io/cert-manager-webhook created
 
+Wait 30-60 seconds for cert-manager to finish initializing before continuing.
+
 #### Deploy `opentelemetry-operator`
 
 The OpenTelemetry Operator will deploy and manage the custom resource `OpenTelemetryCollector` deployed on the cluster.
@@ -300,6 +302,15 @@ config: |
 ```
 Default Metrics:\
 https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/kubeletstatsreceiver/documentation.md
+
+**note:** for this lab, the Kind cluster does not have cluster metadata to collect.  These values will be spoofed for the purposes of this lab.
+```yaml
+resource/kind:
+  attributes:
+  - key: k8s.cluster.name
+    value: dt-k8s-o11y-kind
+    action: insert
+```
 
 ##### Query Node metrics in Dynatrace
 DQL:
