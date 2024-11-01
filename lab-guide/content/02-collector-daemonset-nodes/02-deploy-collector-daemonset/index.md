@@ -1,6 +1,12 @@
 ## Deploy OpenTelemetry Collector 
 
+### Kubernetes Node Metrics
+
+Each Kubernetes Node runs a kubelet that includes an API server. The `kubeletstats` Receiver connects to that kubelet via the API server to collect metrics about the node and the workloads running on the node.
+
 ### Contrib Distro - Daemonset (Node Agent)
+
+The `kubeletstats` receiver is only available on the Contrib Distro of the OpenTelemetry Collector.  Therefore we must deploy a new Collector using the `contrib` image.
 
 ```yaml
 ---
@@ -39,6 +45,9 @@ Sample output:
 | dynatrace-metrics-node-collector-2kzlp   | 1/1   | Running | 0        | 1m  |
 
 ### Create `clusterrole` with read access to Kubernetes objects
+
+Since the receiver uses the Kubernetes API, it needs the correct permission to work correctly. For most use cases, you should give the service account running the Collector the following permissions via a ClusterRole.
+
 ```yaml
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -94,6 +103,9 @@ Sample output:
 
 ### `kubeletstats` receiver
 https://opentelemetry.io/docs/kubernetes/collector/components/#kubeletstats-receiver
+
+By default, metrics will be collected for pods and nodes, but you can configure the receiver to collect container and volume metrics as well. The receiver also allows configuring how often the metrics are collected:
+
 ```yaml
 config: |
     receivers:

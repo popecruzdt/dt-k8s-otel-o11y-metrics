@@ -1,7 +1,14 @@
 ## k8sattributes Processor
 
+The Kubernetes Attributes Processor automatically discovers Kubernetes pods, extracts their metadata, and adds the extracted metadata to spans, metrics, and logs as resource attributes.
+
+The Kubernetes Attributes Processor is one of the most important components for a collector running in Kubernetes. Any collector receiving application data should use it. Because it adds Kubernetes context to your telemetry, the Kubernetes Attributes Processor lets you correlate your application’s traces, metrics, and logs signals with your Kubernetes telemetry, such as pod metrics and traces.
+
 ### Add `k8sattributes` processor
 https://opentelemetry.io/docs/kubernetes/collector/components/#kubernetes-attributes-processor
+
+The `k8sattributes` processor will query metadata from the cluster about the k8s objects.  The Collector will then marry this metadata to the telemetry.
+
 ```yaml
 k8sattributes:
   auth_type: "serviceAccount"
@@ -57,3 +64,13 @@ Sample output:
 | NAME                             | READY | STATUS  | RESTARTS | AGE |
 |----------------------------------|-------|---------|----------|-----|
 | dynatrace-metrics-node-collector-drk1p   | 1/1   | Running | 0        | 1m  |
+
+### Query Pod metrics in Dynatrace
+DQL:
+```sql
+timeseries avg(k8s.pod.cpu.utilization), by: { k8s.pod.name, k8s.node.name, k8s.namespace.name, k8s.deployment.name, k8s.cluster.name, k8s.pod.uid }
+| filter k8s.namespace.name == "astronomy-shop" and k8s.deployment.name == "astronomy-shop-productcatalogservice"
+```
+Result:
+
+*Screenshot Pending*

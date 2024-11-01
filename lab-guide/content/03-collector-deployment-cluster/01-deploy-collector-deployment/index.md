@@ -1,7 +1,16 @@
 ## Deploy OpenTelemetry Collector
 
+### Kubernetes Cluster Metrics
+
+The Kubernetes Cluster Receiver collects metrics and entity events about the cluster as a whole using the Kubernetes API server. Use this receiver to answer questions about pod phases, node conditions, and other cluster-wide questions.
+
 ### Contrib Distro - Deployment (Gateway)
 https://github.com/open-telemetry/opentelemetry-operator
+
+The `k8s_cluster` receiver is only available on the Contrib Distro of the OpenTelemetry Collector.  Therefore we must deploy a new Collector using the `contrib` image.
+
+Since the receiver gathers telemetry for the cluster as a whole, only one instance of the receiver is needed across the cluster in order to collect all the data.  The Collector will be deployed as a Deployment (Gateway).
+
 ```yaml
 ---
 apiVersion: opentelemetry.io/v1alpha1
